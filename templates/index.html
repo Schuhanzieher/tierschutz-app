@@ -20,32 +20,39 @@
 
 <!-- KPI-Karten -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="kpi-card">
             <div class="kpi-icon kpi-icon-total">&#x1f4c7;</div>
             <div class="kpi-value">{{ total }}</div>
             <div class="kpi-label">Kontakte gesamt</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="kpi-card">
             <div class="kpi-icon kpi-icon-green">&#x1f7e2;</div>
             <div class="kpi-value">{{ status_dict.get('gruen', 0) }}</div>
-            <div class="kpi-label">Aktiv / im Austausch</div>
+            <div class="kpi-label">Aktiv</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="kpi-card">
             <div class="kpi-icon kpi-icon-yellow">&#x1f7e1;</div>
             <div class="kpi-value">{{ status_dict.get('gelb', 0) }}</div>
-            <div class="kpi-label">Offen / warm</div>
+            <div class="kpi-label">Offen</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="kpi-card">
             <div class="kpi-icon kpi-icon-red">&#x1f534;</div>
             <div class="kpi-value">{{ status_dict.get('rot', 0) }}</div>
-            <div class="kpi-label">Aktuell nicht m&ouml;glich</div>
+            <div class="kpi-label">Nicht m&ouml;glich</div>
+        </div>
+    </div>
+    <div class="col-12 col-lg">
+        <div class="kpi-card {% if followup_kritisch > 0 %}kpi-card-alert{% endif %}">
+            <div class="kpi-icon">&#x1f514;</div>
+            <div class="kpi-value">{{ followups|length }}</div>
+            <div class="kpi-label">Follow-Ups</div>
         </div>
     </div>
 </div>
@@ -78,6 +85,79 @@
             <span>&#x1f534; Nicht m&ouml;glich {{ (rot / total * 100)|round(0)|int }}%</span>
         </div>
     </div>
+</div>
+{% endif %}
+
+<!-- Follow-Up Erinnerungen -->
+{% if followups %}
+<div class="card border-0 shadow-sm mb-4 followup-card">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <span class="followup-bell">&#x1f514;</span>
+            <strong>Heute nachfassen</strong>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            {% if followup_kritisch > 0 %}
+            <span class="badge followup-badge-kritisch">{{ followup_kritisch }} &uuml;berf&auml;llig</span>
+            {% endif %}
+            {% if followup_warn > 0 %}
+            <span class="badge followup-badge-warn">{{ followup_warn }} bald f&auml;llig</span>
+            {% endif %}
+            {% if followups|length > 8 %}
+            <button class="btn btn-sm btn-outline-secondary followup-toggle-btn" onclick="toggleFollowups()">
+                Alle zeigen <i class="bi bi-chevron-down"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="followup-list" id="followup-list">
+            {% for f in followups %}
+            <a href="{{ url_for('contact_detail', id=f.kontakt.id) }}"
+               class="followup-item followup-{{ f.dringlichkeit }}{% if loop.index > 8 %} followup-hidden{% endif %}">
+                <div class="followup-indicator"></div>
+                <div class="followup-avatar">
+                    {{ f.kontakt.name_organisation[:1]|upper }}
+                </div>
+                <div class="followup-info">
+                    <div class="followup-name">{{ f.kontakt.name_organisation }}</div>
+                    <div class="followup-detail">
+                        <span class="followup-kategorie">{{ f.kontakt.kategorie }}</span>
+                        {% if f.kontakt.naechster_schritt %}
+                        <span class="followup-step">&mdash; {{ f.kontakt.naechster_schritt }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="followup-meta text-end">
+                    {% if f.tage is not none %}
+                    <div class="followup-tage">
+                        {% if f.dringlichkeit == 'kritisch' %}
+                        <span class="text-danger fw-bold">{{ f.tage }} Tage</span>
+                        {% else %}
+                        <span class="text-warning fw-bold">{{ f.tage }} Tage</span>
+                        {% endif %}
+                    </div>
+                    <div class="followup-tage-label">ohne Kontakt</div>
+                    {% else %}
+                    <div class="followup-tage">
+                        <span class="text-muted fw-bold">Offen</span>
+                    </div>
+                    <div class="followup-tage-label">kein Datum</div>
+                    {% endif %}
+                </div>
+                <div class="followup-action">
+                    <i class="bi bi-arrow-right-circle"></i>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% if followups|length > 8 %}
+    <div class="card-footer bg-white border-0 text-center py-2">
+        <small class="text-muted">{{ followups|length }} Kontakte brauchen Aufmerksamkeit &mdash;
+        <a href="{{ url_for('contact_list', sort='letzter_kontakt') }}" class="text-decoration-none">Kontaktliste &ouml;ffnen</a></small>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -234,6 +314,24 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Follow-Up Toggle -->
+<script>
+function toggleFollowups() {
+    var items = document.querySelectorAll('.followup-hidden');
+    var btn = document.querySelector('.followup-toggle-btn');
+    var expanded = btn.getAttribute('data-expanded') === 'true';
+
+    items.forEach(function(el) {
+        el.style.display = expanded ? 'none' : 'flex';
+    });
+
+    btn.setAttribute('data-expanded', expanded ? 'false' : 'true');
+    btn.innerHTML = expanded
+        ? 'Alle zeigen <i class="bi bi-chevron-down"></i>'
+        : 'Weniger <i class="bi bi-chevron-up"></i>';
+}
+</script>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>

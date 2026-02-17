@@ -1,10 +1,11 @@
 import csv
 import io
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import (
     abort,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -28,6 +29,52 @@ from models import (
 
 
 def register_routes(app):
+
+    # ── Follow-Up Helfer ──────────────────────────────────────
+
+    def _berechne_followups():
+        """Berechnet Follow-Up-Erinnerungen fuer alle aktiven Kontakte."""
+        heute = date.today()
+        followups = []
+
+        # Nur aktive (gruen) und offene (gelb) Kontakte
+        kontakte = (
+            Contact.query
+            .filter(Contact.status.in_(["gruen", "gelb"]))
+            .all()
+        )
+
+        for k in kontakte:
+            tage_seit_kontakt = None
+            dringlichkeit = "normal"  # normal, warn, kritisch
+
+            if k.letzter_kontakt:
+                delta = heute - k.letzter_kontakt
+                tage_seit_kontakt = delta.days
+
+                if tage_seit_kontakt >= 21:
+                    dringlichkeit = "kritisch"
+                elif tage_seit_kontakt >= 10:
+                    dringlichkeit = "warn"
+                else:
+                    # Weniger als 10 Tage: kein Follow-Up noetig
+                    continue
+            else:
+                # Kein letzter Kontakt eingetragen = sollte man nachfassen
+                dringlichkeit = "kritisch"
+                tage_seit_kontakt = None
+
+            followups.append({
+                "kontakt": k,
+                "tage": tage_seit_kontakt,
+                "dringlichkeit": dringlichkeit,
+            })
+
+        # Sortierung: kritisch zuerst, dann warn, dann nach Tagen (meiste zuerst)
+        prio = {"kritisch": 0, "warn": 1, "normal": 2}
+        followups.sort(key=lambda x: (prio[x["dringlichkeit"]], -(x["tage"] or 999)))
+
+        return followups
 
     # ── Dashboard ──────────────────────────────────────────────
 
@@ -79,6 +126,11 @@ def register_routes(app):
             .all()
         )
 
+        # Follow-Up-Erinnerungen
+        followups = _berechne_followups()
+        followup_kritisch = sum(1 for f in followups if f["dringlichkeit"] == "kritisch")
+        followup_warn = sum(1 for f in followups if f["dringlichkeit"] == "warn")
+
         return render_template(
             "index.html",
             total=total,
@@ -89,6 +141,9 @@ def register_routes(app):
             total_activities=total_activities,
             kontaktweg_counts=kontaktweg_counts,
             open_todos=open_todos,
+            followups=followups,
+            followup_kritisch=followup_kritisch,
+            followup_warn=followup_warn,
             status_map=STATUS_MAP,
             kategorien=KATEGORIEN,
         )
