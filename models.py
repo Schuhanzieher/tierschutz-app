@@ -208,13 +208,40 @@ E-Mail: {email}""",
 }
 
 
+class ChatRubrik(db.Model):
+    __tablename__ = "chat_rubriken"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    emoji = db.Column(db.String(10), nullable=False, default="💬")
+    beschreibung = db.Column(db.String(300), nullable=True)
+    erstellt_von = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    messages = db.relationship("ChatMessage", backref="rubrik", lazy="dynamic",
+                                order_by="ChatMessage.created_at.asc()")
+
+    def __repr__(self):
+        return f"<ChatRubrik {self.id}: {self.name}>"
+
+
 class ChatMessage(db.Model):
     __tablename__ = "chat_messages"
 
     id = db.Column(db.Integer, primary_key=True)
     absender = db.Column(db.String(100), nullable=False)
     nachricht = db.Column(db.Text, nullable=False)
+    rubrik_id = db.Column(db.Integer, db.ForeignKey("chat_rubriken.id"), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return f"<ChatMessage {self.id}: {self.absender}>"
+
+
+# Standard-Rubriken die beim Start erstellt werden
+DEFAULT_RUBRIKEN = [
+    {"name": "Allgemein", "emoji": "💬", "beschreibung": "Allgemeiner Team-Chat"},
+    {"name": "Planung", "emoji": "📋", "beschreibung": "Konzertplanung & Organisation"},
+    {"name": "Ideen", "emoji": "💡", "beschreibung": "Ideen & Brainstorming"},
+    {"name": "Kontakte", "emoji": "📇", "beschreibung": "Diskussionen zu Kontakten & Partnern"},
+]

@@ -34,22 +34,62 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // ── Chat: Username-System ─────────────────────────────────
+    var globalUsername = document.getElementById("global-username");
+    var sidebarAvatar = document.getElementById("sidebar-avatar");
+    var chatAbsenderHidden = document.getElementById("chat-absender-hidden");
+    var rubrikBenutzername = document.getElementById("rubrik-benutzername");
+
+    function updateChatUsername() {
+        var name = globalUsername ? globalUsername.value.trim() : "";
+        if (name) {
+            localStorage.setItem("chat-username", name);
+            if (sidebarAvatar) sidebarAvatar.textContent = name[0].toUpperCase();
+            if (chatAbsenderHidden) chatAbsenderHidden.value = name;
+            if (rubrikBenutzername) rubrikBenutzername.value = name;
+        } else {
+            if (sidebarAvatar) sidebarAvatar.textContent = "?";
+        }
+    }
+
+    if (globalUsername) {
+        var savedName = localStorage.getItem("chat-username");
+        if (savedName) {
+            globalUsername.value = savedName;
+        }
+        updateChatUsername();
+        globalUsername.addEventListener("input", updateChatUsername);
+        globalUsername.addEventListener("change", updateChatUsername);
+    }
+
     // ── Chat: Auto-Scroll + Polling ─────────────────────────────
     var chatBox = document.getElementById("chat-box");
     if (chatBox) {
         // Ans Ende scrollen
         chatBox.scrollTop = chatBox.scrollHeight;
 
+        var rubrikId = chatBox.getAttribute("data-rubrik-id") || 0;
+
         // Letzte bekannte ID ermitteln
         var lastId = 0;
-        var allMsgs = chatBox.querySelectorAll(".chat-message");
+        var allMsgs = chatBox.querySelectorAll(".chat-bubble");
         if (allMsgs.length > 0) {
             lastId = parseInt(allMsgs[allMsgs.length - 1].getAttribute("data-id")) || 0;
         }
 
-        // Polling alle 5 Sekunden
+        // Farbe fuer einen Namen berechnen
+        function nameToColor(name) {
+            var hash = 0;
+            for (var i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            var hue = Math.abs(hash % 360);
+            return "hsl(" + hue + ", 60%, 45%)";
+        }
+
+        // Polling alle 3 Sekunden
         setInterval(function () {
-            fetch("/chat/api?after=" + lastId)
+            fetch("/chat/api?after=" + lastId + "&rubrik_id=" + rubrikId)
                 .then(function (res) { return res.json(); })
                 .then(function (data) {
                     if (data.messages && data.messages.length > 0) {
@@ -59,14 +99,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         data.messages.forEach(function (m) {
                             var div = document.createElement("div");
-                            div.className = "chat-message";
+                            div.className = "chat-bubble";
                             div.setAttribute("data-id", m.id);
+                            var initial = m.absender ? m.absender[0].toUpperCase() : "?";
+                            var color = nameToColor(m.absender || "");
                             div.innerHTML =
-                                '<div class="chat-meta">' +
-                                    '<strong class="chat-absender">' + escapeHtml(m.absender) + '</strong>' +
-                                    '<span class="chat-zeit">' + escapeHtml(m.zeit) + '</span>' +
+                                '<div class="chat-bubble-avatar" style="background-color: ' + color + '">' +
+                                    escapeHtml(initial) +
                                 '</div>' +
-                                '<div class="chat-text">' + escapeHtml(m.nachricht) + '</div>';
+                                '<div class="chat-bubble-content">' +
+                                    '<div class="chat-bubble-header">' +
+                                        '<strong class="chat-bubble-name">' + escapeHtml(m.absender) + '</strong>' +
+                                        '<span class="chat-bubble-time">' + escapeHtml(m.zeit) + '</span>' +
+                                    '</div>' +
+                                    '<div class="chat-bubble-text">' + escapeHtml(m.nachricht) + '</div>' +
+                                '</div>';
                             chatBox.appendChild(div);
                             lastId = m.id;
                         });
@@ -74,15 +121,26 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 })
                 .catch(function () {});
-        }, 5000);
+        }, 3000);
 
-        // Absender im localStorage merken
-        var chatAbsender = document.getElementById("chat-absender");
-        if (chatAbsender) {
-            var saved = localStorage.getItem("chat-absender");
-            if (saved) chatAbsender.value = saved;
-            chatAbsender.addEventListener("change", function () {
-                localStorage.setItem("chat-absender", this.value);
+        // Form-Submit: Username pruefen
+        var chatForm = document.getElementById("chat-form");
+        var chatSendBtn = document.getElementById("chat-send-btn");
+        if (chatForm) {
+            chatForm.addEventListener("submit", function (e) {
+                var name = globalUsername ? globalUsername.value.trim() : "";
+                if (!name) {
+                    e.preventDefault();
+                    globalUsername.focus();
+                    globalUsername.style.borderColor = "#ef4444";
+                    globalUsername.setAttribute("placeholder", "Bitte Name eingeben!");
+                    setTimeout(function () {
+                        globalUsername.style.borderColor = "";
+                        globalUsername.setAttribute("placeholder", "Dein Name...");
+                    }, 2000);
+                    return false;
+                }
+                if (chatAbsenderHidden) chatAbsenderHidden.value = name;
             });
         }
     }

@@ -16,6 +16,8 @@ from models import (
     Contact,
     ActivityLog,
     ChatMessage,
+    ChatRubrik,
+    DEFAULT_RUBRIKEN,
     STATUS_MAP,
     STATUS_CYCLE,
     KATEGORIEN,
@@ -331,47 +333,110 @@ def register_routes(app):
 
     # ── Chat ──────────────────────────────────────────────────
 
+    def _ensure_default_rubriken():
+        """Erstellt Standard-Rubriken falls noch keine existieren."""
+        if ChatRubrik.query.count() == 0:
+            for r in DEFAULT_RUBRIKEN:
+                rubrik = ChatRubrik(
+                    name=r["name"],
+                    emoji=r["emoji"],
+                    beschreibung=r.get("beschreibung", ""),
+                    erstellt_von="System",
+                )
+                db.session.add(rubrik)
+            db.session.commit()
+
     @app.route("/chat")
-    def chat():
-        messages = ChatMessage.query.order_by(ChatMessage.created_at.asc()).all()
+    @app.route("/chat/<int:rubrik_id>")
+    def chat(rubrik_id=None):
+        _ensure_default_rubriken()
+        rubriken = ChatRubrik.query.order_by(ChatRubrik.created_at.asc()).all()
+
+        # Standard: erste Rubrik
+        if rubrik_id is None and rubriken:
+            return redirect(url_for("chat", rubrik_id=rubriken[0].id))
+
+        aktive_rubrik = None
+        messages = []
+        if rubrik_id:
+            aktive_rubrik = ChatRubrik.query.get_or_404(rubrik_id)
+            messages = (
+                ChatMessage.query
+                .filter_by(rubrik_id=rubrik_id)
+                .order_by(ChatMessage.created_at.asc())
+                .all()
+            )
+
+        # Nachrichten-Anzahl pro Rubrik
+        rubrik_counts = {}
+        for r in rubriken:
+            rubrik_counts[r.id] = ChatMessage.query.filter_by(rubrik_id=r.id).count()
+
         return render_template(
             "chat.html",
             messages=messages,
-            mitglieder=ORGA_MITGLIEDER,
+            rubriken=rubriken,
+            aktive_rubrik=aktive_rubrik,
+            rubrik_counts=rubrik_counts,
         )
+
+    @app.route("/chat/rubrik/neu", methods=["POST"])
+    def chat_rubrik_create():
+        name = request.form.get("name", "").strip()
+        emoji = request.form.get("emoji", "💬").strip() or "💬"
+        beschreibung = request.form.get("beschreibung", "").strip()
+        erstellt_von = request.form.get("benutzername", "").strip() or "Anonym"
+
+        if not name:
+            flash("Rubrik braucht einen Namen.", "error")
+            return redirect(url_for("chat"))
+
+        # Pruefen ob Name schon existiert
+        if ChatRubrik.query.filter_by(name=name).first():
+            flash(f"Rubrik '{name}' existiert bereits.", "error")
+            return redirect(url_for("chat"))
+
+        rubrik = ChatRubrik(name=name, emoji=emoji, beschreibung=beschreibung,
+                            erstellt_von=erstellt_von)
+        db.session.add(rubrik)
+        db.session.commit()
+        flash(f"Rubrik '{emoji} {name}' wurde erstellt!", "success")
+        return redirect(url_for("chat", rubrik_id=rubrik.id))
 
     @app.route("/chat/senden", methods=["POST"])
     def chat_send():
         absender = request.form.get("absender", "").strip()
         nachricht = request.form.get("nachricht", "").strip()
+        rubrik_id = request.form.get("rubrik_id", type=int)
 
         if not absender or not nachricht:
-            flash("Absender und Nachricht sind erforderlich.", "error")
-            return redirect(url_for("chat"))
+            flash("Name und Nachricht sind erforderlich.", "error")
+            return redirect(url_for("chat", rubrik_id=rubrik_id))
 
-        msg = ChatMessage(absender=absender, nachricht=nachricht)
+        msg = ChatMessage(absender=absender, nachricht=nachricht, rubrik_id=rubrik_id)
         db.session.add(msg)
         db.session.commit()
 
-        return redirect(url_for("chat"))
+        return redirect(url_for("chat", rubrik_id=rubrik_id))
 
     @app.route("/chat/api")
     def chat_api():
         """JSON-Endpunkt fuer Chat-Polling."""
         after_id = request.args.get("after", 0, type=int)
-        messages = (
-            ChatMessage.query
-            .filter(ChatMessage.id > after_id)
-            .order_by(ChatMessage.created_at.asc())
-            .all()
-        )
+        rubrik_id = request.args.get("rubrik_id", 0, type=int)
+
+        query = ChatMessage.query.filter(ChatMessage.id > after_id)
+        if rubrik_id:
+            query = query.filter_by(rubrik_id=rubrik_id)
+
+        messages = query.order_by(ChatMessage.created_at.asc()).all()
         return {
             "messages": [
                 {
                     "id": m.id,
                     "absender": m.absender,
                     "nachricht": m.nachricht,
-                    "zeit": m.created_at.strftime("%d.%m.%Y %H:%M"),
+                    "zeit": m.created_at.strftime("%d.%m. %H:%M"),
                 }
                 for m in messages
             ]

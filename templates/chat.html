@@ -2,73 +2,162 @@
 {% block title %}Team-Chat – Tierschutz 2028{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">&#x1f4ac; Team-Chat</h2>
+<div class="chat-app">
+    <div class="row g-0">
+        <!-- ── Sidebar: Rubriken ──────────────────────── -->
+        <div class="col-md-3 chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h5 class="mb-0">Channels</h5>
+                <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#rubrikModal" title="Neue Rubrik">
+                    <i class="bi bi-plus-lg"></i> Neu
+                </button>
+            </div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-0">
-                <div id="chat-box" class="chat-box">
-                    {% if messages %}
-                        {% for m in messages %}
-                        <div class="chat-message" data-id="{{ m.id }}">
-                            <div class="chat-meta">
-                                <strong class="chat-absender">{{ m.absender }}</strong>
-                                <span class="chat-zeit">{{ m.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
-                            </div>
-                            <div class="chat-text">{{ m.nachricht }}</div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center text-muted p-4" id="chat-empty">
-                            Noch keine Nachrichten. Schreib die erste!
-                        </div>
-                    {% endif %}
+            <div class="chat-sidebar-user">
+                <div class="d-flex align-items-center gap-2 px-3 py-2">
+                    <div class="chat-user-avatar-sm" id="sidebar-avatar">?</div>
+                    <input type="text" class="form-control form-control-sm chat-name-input"
+                           id="global-username" placeholder="Dein Name..."
+                           maxlength="30" autocomplete="off">
                 </div>
             </div>
-            <div class="card-footer bg-white">
-                <form method="POST" action="{{ url_for('chat_send') }}" id="chat-form" class="d-flex gap-2 align-items-end">
-                    <div class="flex-shrink-0" style="width: 140px;">
-                        <select name="absender" class="form-select form-select-sm" required id="chat-absender">
-                            {% for m in mitglieder %}
-                            <option value="{{ m }}">{{ m }}</option>
-                            {% endfor %}
-                        </select>
+
+            <div class="chat-channel-list">
+                {% for r in rubriken %}
+                <a href="{{ url_for('chat', rubrik_id=r.id) }}"
+                   class="chat-channel {% if aktive_rubrik and aktive_rubrik.id == r.id %}active{% endif %}">
+                    <span class="chat-channel-emoji">{{ r.emoji }}</span>
+                    <div class="chat-channel-info">
+                        <span class="chat-channel-name">{{ r.name }}</span>
+                        {% if r.beschreibung %}
+                        <span class="chat-channel-desc">{{ r.beschreibung }}</span>
+                        {% endif %}
                     </div>
-                    <div class="flex-grow-1">
-                        <input type="text" name="nachricht" class="form-control form-control-sm"
-                               placeholder="Nachricht schreiben..." required id="chat-input"
-                               autocomplete="off" maxlength="2000">
+                    {% if rubrik_counts.get(r.id, 0) > 0 %}
+                    <span class="chat-channel-count">{{ rubrik_counts[r.id] }}</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+
+            <div class="chat-sidebar-footer">
+                <small>{{ rubriken|length }} Channels</small>
+            </div>
+        </div>
+
+        <!-- ── Haupt-Chat-Bereich ─────────────────────── -->
+        <div class="col-md-9 chat-main">
+            {% if aktive_rubrik %}
+            <!-- Channel Header -->
+            <div class="chat-main-header">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-4">{{ aktive_rubrik.emoji }}</span>
+                    <div>
+                        <h5 class="mb-0">{{ aktive_rubrik.name }}</h5>
+                        {% if aktive_rubrik.beschreibung %}
+                        <small class="text-muted">{{ aktive_rubrik.beschreibung }}</small>
+                        {% endif %}
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm">Senden</button>
+                </div>
+                <span class="badge bg-light text-dark">
+                    {{ rubrik_counts.get(aktive_rubrik.id, 0) }} Nachrichten
+                </span>
+            </div>
+
+            <!-- Messages -->
+            <div id="chat-box" class="chat-messages" data-rubrik-id="{{ aktive_rubrik.id }}">
+                {% if messages %}
+                    {% set ns = namespace(last_date='') %}
+                    {% for m in messages %}
+                        {% set msg_date = m.created_at.strftime('%d.%m.%Y') %}
+                        {% if msg_date != ns.last_date %}
+                        <div class="chat-date-divider">
+                            <span>{{ msg_date }}</span>
+                        </div>
+                        {% set ns.last_date = msg_date %}
+                        {% endif %}
+                        <div class="chat-bubble" data-id="{{ m.id }}">
+                            <div class="chat-bubble-avatar" style="background-color: {{ '#' ~ '%06x' % (m.absender.__hash__() % 0xFFFFFF) if m.absender else '#0d6efd' }}">
+                                {{ m.absender[0]|upper if m.absender else '?' }}
+                            </div>
+                            <div class="chat-bubble-content">
+                                <div class="chat-bubble-header">
+                                    <strong class="chat-bubble-name">{{ m.absender }}</strong>
+                                    <span class="chat-bubble-time">{{ m.created_at.strftime('%H:%M') }}</span>
+                                </div>
+                                <div class="chat-bubble-text">{{ m.nachricht }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="chat-empty" id="chat-empty">
+                        <div class="chat-empty-icon">{{ aktive_rubrik.emoji }}</div>
+                        <h5>Willkommen in #{{ aktive_rubrik.name }}!</h5>
+                        <p>Noch keine Nachrichten. Starte die Unterhaltung!</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Eingabe -->
+            <div class="chat-input-area">
+                <form method="POST" action="{{ url_for('chat_send') }}" id="chat-form" class="chat-input-form">
+                    <input type="hidden" name="rubrik_id" value="{{ aktive_rubrik.id }}">
+                    <input type="hidden" name="absender" id="chat-absender-hidden" value="">
+                    <div class="chat-input-wrapper">
+                        <input type="text" name="nachricht" class="form-control chat-input"
+                               placeholder="Nachricht in #{{ aktive_rubrik.name }} schreiben..."
+                               required id="chat-input" autocomplete="off" maxlength="2000">
+                        <button type="submit" class="btn btn-primary chat-send-btn" id="chat-send-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </form>
             </div>
+
+            {% else %}
+            <!-- Kein Channel ausgewaehlt -->
+            <div class="chat-no-channel">
+                <div class="chat-empty-icon">💬</div>
+                <h4>Waehle einen Channel</h4>
+                <p class="text-muted">Klicke links auf einen Channel um zu starten.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
+</div>
 
-    <div class="col-lg-4 mt-3 mt-lg-0">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white"><strong>&#x1f465; Orga-Team</strong></div>
-            <div class="card-body">
-                <ul class="list-unstyled mb-0">
-                    {% for m in mitglieder %}
-                    <li class="d-flex align-items-center mb-2">
-                        <span class="orga-avatar me-2">{{ m[0] }}</span>
-                        <span>{{ m }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+<!-- Modal: Neue Rubrik erstellen -->
+<div class="modal fade" id="rubrikModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 bg-dark text-white">
+                <h5 class="modal-title">Neuen Channel erstellen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-
-        <div class="card border-0 shadow-sm mt-3">
-            <div class="card-header bg-white"><strong>&#x2139;&#xfe0f; Hinweis</strong></div>
-            <div class="card-body">
-                <small class="text-muted">
-                    Der Chat wird automatisch alle 5 Sekunden aktualisiert.
-                    W&auml;hle deinen Namen aus und schreibe los!
-                </small>
-            </div>
+            <form method="POST" action="{{ url_for('chat_rubrik_create') }}">
+                <input type="hidden" name="benutzername" id="rubrik-benutzername" value="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Channel-Name *</label>
+                        <input type="text" name="name" class="form-control" placeholder="z.B. Marketing, Budget, Technik..." required maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Emoji</label>
+                        <input type="text" name="emoji" class="form-control" placeholder="z.B. 🎵, 📊, 🎯" maxlength="10" value="💬">
+                        <div class="form-text">Waehle ein passendes Emoji fuer den Channel.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Beschreibung</label>
+                        <input type="text" name="beschreibung" class="form-control" placeholder="Worum geht es in diesem Channel?" maxlength="300">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Channel erstellen</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
