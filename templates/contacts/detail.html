@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ contact.name_organisation }} – Tierschutz 2028{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('contact_list') }}">Kontakte</a></li>
+        <li class="breadcrumb-item active">{{ contact.name_organisation }}</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h2 class="mb-1">
+                    <form method="POST" action="{{ url_for('contact_status_update', id=contact.id) }}" class="d-inline">
+                        <button type="submit" class="status-badge-lg {{ contact.status_css_class() }}" title="Status &auml;ndern">
+                            {{ contact.status_emoji() }}
+                        </button>
+                    </form>
+                    {{ contact.name_organisation }}
+                </h2>
+                <p class="text-muted mb-0">{{ contact.kategorie }} &mdash; {{ contact.status_label() }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('contact_edit', id=contact.id) }}" class="btn btn-outline-primary">&#x270f;&#xfe0f; Bearbeiten</a>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <dl>
+                    <dt>Kontaktperson</dt>
+                    <dd>{{ contact.kontaktperson or "—" }}</dd>
+
+                    <dt>Rolle / Bezug</dt>
+                    <dd>{{ contact.rolle or "—" }}</dd>
+
+                    <dt>Kontaktweg</dt>
+                    <dd>{{ contact.kontaktweg or "—" }}</dd>
+
+                    <dt>Kontaktdaten</dt>
+                    <dd>{{ contact.kontaktdaten or "—" }}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl>
+                    <dt>Zust&auml;ndig</dt>
+                    <dd>{{ contact.zustaendig or "—" }}</dd>
+
+                    <dt>Letzter Kontakt</dt>
+                    <dd>{{ contact.letzter_kontakt|datum }}</dd>
+
+                    <dt>N&auml;chster Schritt / To-Do</dt>
+                    <dd>{{ contact.naechster_schritt or "—" }}</dd>
+
+                    <dt>Notizen</dt>
+                    <dd>{{ contact.notizen or "—" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aktivitaetslog -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>Aktivit&auml;ten</strong>
+        <button class="btn btn-sm btn-outline-success" type="button" data-bs-toggle="collapse" data-bs-target="#add-activity-form">
+            &#x2795; Aktivit&auml;t hinzuf&uuml;gen
+        </button>
+    </div>
+
+    <!-- Formular zum Hinzufuegen -->
+    <div class="collapse" id="add-activity-form">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('contact_add_activity', id=contact.id) }}">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Datum</label>
+                        <input type="date" name="datum" class="form-control" value="{{ today }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Typ</label>
+                        <select name="typ" class="form-select">
+                            <option value="">— w&auml;hlen —</option>
+                            {% for typ in aktivitaets_typen %}
+                            <option value="{{ typ }}">{{ typ }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Beschreibung</label>
+                        <input type="text" name="beschreibung" class="form-control" placeholder="Was wurde besprochen?">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button type="submit" class="btn btn-success btn-sm">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bestehende Aktivitaeten -->
+    <div class="card-body p-0">
+        {% if activities %}
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Typ</th>
+                    <th>Beschreibung</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in activities %}
+                <tr>
+                    <td>{{ a.datum|datum }}</td>
+                    <td>{{ a.typ or "—" }}</td>
+                    <td>{{ a.beschreibung or "—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted p-3">
+            Noch keine Aktivit&auml;ten erfasst.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loeschen -->
+<div class="text-end mb-4">
+    <form method="POST" action="{{ url_for('contact_delete', id=contact.id) }}" onsubmit="return confirm('Kontakt &quot;{{ contact.name_organisation }}&quot; wirklich l&ouml;schen?')">
+        <button type="submit" class="btn btn-sm btn-outline-danger">&#x1f5d1;&#xfe0f; Kontakt l&ouml;schen</button>
+    </form>
+</div>
+{% endblock %}

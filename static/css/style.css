@@ -1,0 +1,281 @@
+/* ── Status-Badges ────────────────────────────────── */
+
+.status-badge,
+.status-badge-lg {
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    text-align: center;
+    padding: 0;
+    line-height: 1;
+    background: transparent;
+    transition: transform 0.15s;
+}
+
+.status-badge {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+}
+
+.status-badge-lg {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+}
+
+.status-badge:hover,
+.status-badge-lg:hover {
+    transform: scale(1.2);
+}
+
+.status-green { color: #22c55e; }
+.status-yellow { color: #eab308; }
+.status-red { color: #ef4444; }
+
+/* ── Kategorie-Badges ────────────────────────────── */
+
+.kategorie-badge {
+    background-color: #6c757d;
+    font-weight: normal;
+    font-size: 0.75rem;
+}
+
+/* ── Navbar ───────────────────────────────────────── */
+
+.brand-emoji {
+    font-size: 1.3rem;
+}
+
+.navbar-dark .nav-link {
+    font-size: 0.9rem;
+}
+
+/* ── Hero-Banner ─────────────────────────────────── */
+
+.hero-banner {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    border-radius: 1rem;
+    padding: 2.5rem 2rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-banner::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.hero-banner::after {
+    content: "🐾";
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 4rem;
+    opacity: 0.12;
+}
+
+.hero-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.hero-subtitle {
+    font-size: 1rem;
+    color: #a0c4ff;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+.hero-desc {
+    font-size: 0.85rem;
+    color: #c0c8d8;
+    max-width: 600px;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+/* ── KPI-Karten ──────────────────────────────────── */
+
+.kpi-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.kpi-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.kpi-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-top: 0.15rem;
+}
+
+.kpi-icon-total { color: #0d6efd; }
+.kpi-icon-green { color: #22c55e; }
+.kpi-icon-yellow { color: #eab308; }
+.kpi-icon-red { color: #ef4444; }
+
+/* ── Progress-Bar ────────────────────────────────── */
+
+.progress-lg {
+    height: 1.5rem;
+    border-radius: 0.75rem;
+}
+
+.progress-lg .progress-bar {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* ── Activity-Typ Badges ─────────────────────────── */
+
+.badge.bg-purple {
+    background-color: #6f42c1;
+}
+
+/* ── Cards ────────────────────────────────────────── */
+
+.card {
+    border-radius: 0.75rem;
+}
+
+/* ── Tabelle ──────────────────────────────────────── */
+
+.table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+    border-bottom-width: 2px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(34, 197, 94, 0.04);
+}
+
+/* ── Detail-Seite ─────────────────────────────────── */
+
+dt {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+    margin-top: 0.75rem;
+}
+
+dd {
+    margin-bottom: 0;
+}
+
+/* ── Chat ────────────────────────────────────────── */
+
+.chat-box {
+    height: 450px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: #f8f9fa;
+}
+
+.chat-message {
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    background: #fff;
+    border-radius: 0.5rem;
+    border-left: 3px solid #0d6efd;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.chat-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.chat-absender {
+    font-size: 0.85rem;
+    color: #0d6efd;
+}
+
+.chat-zeit {
+    font-size: 0.7rem;
+    color: #adb5bd;
+}
+
+.chat-text {
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.orga-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+/* ── Text-Generator ──────────────────────────────── */
+
+.generated-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 768px) {
+    h2 {
+        font-size: 1.3rem;
+    }
+
+    .table {
+        font-size: 0.85rem;
+    }
+}

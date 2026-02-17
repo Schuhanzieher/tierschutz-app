@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Text-Generator – Tierschutz 2028{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">&#x1f4dd; Text-Generator</h2>
+
+<div class="row">
+    <!-- Formular -->
+    <div class="col-lg-5 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><strong>Vorlage konfigurieren</strong></div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('textgenerator_generate') }}" id="textgen-form">
+                    <!-- Vorlage auswaehlen -->
+                    <div class="mb-3">
+                        <label for="vorlage" class="form-label">Vorlage</label>
+                        <select name="vorlage" id="vorlage" class="form-select" required>
+                            <option value="">-- Vorlage w&auml;hlen --</option>
+                            {% for key, v in vorlagen.items() %}
+                            <option value="{{ key }}" {% if selected_vorlage == key %}selected{% endif %}>
+                                {{ v.label }} ({{ v.kategorie }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Kontakt aus DB auswaehlen (optional) -->
+                    <div class="mb-3">
+                        <label for="kontakt-select" class="form-label">Kontakt &uuml;bernehmen <small class="text-muted">(optional)</small></label>
+                        <select id="kontakt-select" class="form-select">
+                            <option value="">-- Manuell ausf&uuml;llen --</option>
+                            {% for k in kontakte %}
+                            <option value="{{ k.id }}"
+                                    data-name="{{ k.kontaktperson or k.name_organisation }}"
+                                    data-organisation="{{ k.name_organisation }}"
+                                    data-kontaktdaten="{{ k.kontaktdaten or '' }}">
+                                {{ k.name_organisation }}{% if k.kontaktperson %} ({{ k.kontaktperson }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <hr>
+
+                    <!-- Felder -->
+                    <div class="mb-2">
+                        <label for="anrede" class="form-label">Anrede</label>
+                        <select name="anrede" id="anrede" class="form-select form-select-sm">
+                            <option value="">--</option>
+                            <option value="Frau" {% if felder and felder.anrede == 'Frau' %}selected{% endif %}>Frau</option>
+                            <option value="Herr" {% if felder and felder.anrede == 'Herr' %}selected{% endif %}>Herr</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="name" class="form-label">Name (Empf&auml;nger)</label>
+                        <input type="text" name="name" id="name" class="form-control form-control-sm"
+                               value="{{ felder.name if felder else '' }}">
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="organisation" class="form-label">Organisation</label>
+                        <input type="text" name="organisation" id="organisation" class="form-control form-control-sm"
+                               value="{{ felder.organisation if felder else '' }}">
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="absender" class="form-label">Absender</label>
+                        <select name="absender" id="absender" class="form-select form-select-sm">
+                            {% for m in mitglieder %}
+                            <option value="{{ m }}" {% if felder and felder.absender == m %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="details" class="form-label">Details / Individueller Text</label>
+                        <textarea name="details" id="details" class="form-control form-control-sm" rows="3">{{ felder.details if felder else '' }}</textarea>
+                    </div>
+
+                    <!-- Zusaetzliche Felder je nach Vorlage -->
+                    <div id="extra-fields">
+                        <div class="mb-2 field-email" style="display:none;">
+                            <label for="email" class="form-label">E-Mail-Adresse</label>
+                            <input type="email" name="email" id="email" class="form-control form-control-sm"
+                                   value="{{ felder.email if felder else '' }}">
+                        </div>
+
+                        <div class="mb-2 field-ort" style="display:none;">
+                            <label for="ort" class="form-label">Ort</label>
+                            <input type="text" name="ort" id="ort" class="form-control form-control-sm"
+                                   value="{{ felder.ort if felder else '' }}">
+                        </div>
+
+                        <div class="mb-2 field-datum" style="display:none;">
+                            <label for="datum" class="form-label">Datum</label>
+                            <input type="text" name="datum" id="datum" class="form-control form-control-sm"
+                                   placeholder="z.B. 15. M&auml;rz 2028"
+                                   value="{{ felder.datum if felder else '' }}">
+                        </div>
+
+                        <div class="mb-2 field-hashtags" style="display:none;">
+                            <label for="extra_hashtags" class="form-label">Weitere Hashtags</label>
+                            <input type="text" name="extra_hashtags" id="extra_hashtags" class="form-control form-control-sm"
+                                   placeholder="#TiereLieben #Gemeinsam"
+                                   value="{{ felder.extra_hashtags if felder else '' }}">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3 w-100">Text generieren</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ergebnis -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Generierter Text</strong>
+                {% if generated_text %}
+                <button class="btn btn-outline-secondary btn-sm" onclick="copyText()" id="copy-btn">
+                    &#x1f4cb; Kopieren
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if generated_text %}
+                <pre class="generated-text" id="generated-text">{{ generated_text }}</pre>
+                {% else %}
+                <div class="text-center text-muted p-4">
+                    <p class="mb-1">&#x1f4dd;</p>
+                    <p>W&auml;hle eine Vorlage und f&uuml;lle die Felder aus,<br>um einen Text zu generieren.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vorlagen-Uebersicht -->
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white"><strong>Verf&uuml;gbare Vorlagen</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Vorlage</th>
+                            <th>Kategorie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, v in vorlagen.items() %}
+                        <tr>
+                            <td>{{ v.label }}</td>
+                            <td><span class="badge bg-secondary">{{ v.kategorie }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

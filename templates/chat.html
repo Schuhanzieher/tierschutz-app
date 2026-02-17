@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Team-Chat – Tierschutz 2028{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">&#x1f4ac; Team-Chat</h2>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div id="chat-box" class="chat-box">
+                    {% if messages %}
+                        {% for m in messages %}
+                        <div class="chat-message" data-id="{{ m.id }}">
+                            <div class="chat-meta">
+                                <strong class="chat-absender">{{ m.absender }}</strong>
+                                <span class="chat-zeit">{{ m.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                            </div>
+                            <div class="chat-text">{{ m.nachricht }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted p-4" id="chat-empty">
+                            Noch keine Nachrichten. Schreib die erste!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-white">
+                <form method="POST" action="{{ url_for('chat_send') }}" id="chat-form" class="d-flex gap-2 align-items-end">
+                    <div class="flex-shrink-0" style="width: 140px;">
+                        <select name="absender" class="form-select form-select-sm" required id="chat-absender">
+                            {% for m in mitglieder %}
+                            <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex-grow-1">
+                        <input type="text" name="nachricht" class="form-control form-control-sm"
+                               placeholder="Nachricht schreiben..." required id="chat-input"
+                               autocomplete="off" maxlength="2000">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Senden</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mt-3 mt-lg-0">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><strong>&#x1f465; Orga-Team</strong></div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    {% for m in mitglieder %}
+                    <li class="d-flex align-items-center mb-2">
+                        <span class="orga-avatar me-2">{{ m[0] }}</span>
+                        <span>{{ m }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-white"><strong>&#x2139;&#xfe0f; Hinweis</strong></div>
+            <div class="card-body">
+                <small class="text-muted">
+                    Der Chat wird automatisch alle 5 Sekunden aktualisiert.
+                    W&auml;hle deinen Namen aus und schreibe los!
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

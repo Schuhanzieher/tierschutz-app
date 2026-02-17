@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Tierschutz-Benefizkonzert 2028{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="hero-banner mb-4">
+    <div class="hero-content">
+        <h1 class="hero-title">Tierschutz-Benefizkonzert 2028</h1>
+        <p class="hero-subtitle">Musik gegen Weltschmerz &mdash; Munkenradio e. V.</p>
+        <p class="hero-desc">
+            Gemeinsam mit K&uuml;nstler:innen, NGOs und Unternehmen setzen wir ein Zeichen f&uuml;r den Tierschutz.
+            Hier beh&auml;ltst du den &Uuml;berblick &uuml;ber alle Kontakte, Kooperationen und den Projektfortschritt.
+        </p>
+        <div class="hero-actions">
+            <a href="{{ url_for('contact_create') }}" class="btn btn-light btn-sm me-2">&#x2795; Neuer Kontakt</a>
+            <a href="{{ url_for('contact_list') }}" class="btn btn-outline-light btn-sm">&#x1f4cb; Alle Kontakte</a>
+        </div>
+    </div>
+</div>
+
+<!-- KPI-Karten -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-total">&#x1f4c7;</div>
+            <div class="kpi-value">{{ total }}</div>
+            <div class="kpi-label">Kontakte gesamt</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-green">&#x1f7e2;</div>
+            <div class="kpi-value">{{ status_dict.get('gruen', 0) }}</div>
+            <div class="kpi-label">Aktiv / im Austausch</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-yellow">&#x1f7e1;</div>
+            <div class="kpi-value">{{ status_dict.get('gelb', 0) }}</div>
+            <div class="kpi-label">Offen / warm</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-red">&#x1f534;</div>
+            <div class="kpi-value">{{ status_dict.get('rot', 0) }}</div>
+            <div class="kpi-label">Aktuell nicht m&ouml;glich</div>
+        </div>
+    </div>
+</div>
+
+<!-- Fortschrittsbalken -->
+{% if total > 0 %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Kontakt-Status-Verteilung</strong>
+            <span class="text-muted small">{{ total }} Kontakte</span>
+        </div>
+        {% set gruen = status_dict.get('gruen', 0) %}
+        {% set gelb = status_dict.get('gelb', 0) %}
+        {% set rot = status_dict.get('rot', 0) %}
+        <div class="progress progress-lg mb-2">
+            {% if gruen > 0 %}
+            <div class="progress-bar bg-success" style="width: {{ (gruen / total * 100)|round(1) }}%">{{ gruen }}</div>
+            {% endif %}
+            {% if gelb > 0 %}
+            <div class="progress-bar bg-warning text-dark" style="width: {{ (gelb / total * 100)|round(1) }}%">{{ gelb }}</div>
+            {% endif %}
+            {% if rot > 0 %}
+            <div class="progress-bar bg-danger" style="width: {{ (rot / total * 100)|round(1) }}%">{{ rot }}</div>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-3 small text-muted">
+            <span>&#x1f7e2; Aktiv {{ (gruen / total * 100)|round(0)|int }}%</span>
+            <span>&#x1f7e1; Offen {{ (gelb / total * 100)|round(0)|int }}%</span>
+            <span>&#x1f534; Nicht m&ouml;glich {{ (rot / total * 100)|round(0)|int }}%</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Charts + Info -->
+<div class="row g-3 mb-4">
+    <!-- Kategorie-Chart -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0"><strong>&#x1f4ca; Kontakte nach Kategorie</strong></div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                {% if kat_counts %}
+                <canvas id="chart-kategorien" height="260"></canvas>
+                {% else %}
+                <p class="text-muted">Noch keine Kontakte angelegt.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Kontaktwege-Chart -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0"><strong>&#x1f4e8; Kontaktwege</strong></div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                {% if kontaktweg_counts %}
+                <canvas id="chart-kontaktwege" height="260"></canvas>
+                {% else %}
+                <p class="text-muted">Noch keine Kontaktwege erfasst.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projekt-Info + Offene Aufgaben -->
+<div class="row g-3 mb-4">
+    <!-- Projekt-Info -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0"><strong>&#x1f3b5; &Uuml;ber das Projekt</strong></div>
+            <div class="card-body">
+                <p class="small">
+                    Das <strong>Tierschutz-Benefizkonzert 2028</strong> ist ein Herzensprojekt von
+                    <strong>Munkenradio e. V.</strong> &mdash; ein Abend voller Musik, Gemeinschaft und Engagement
+                    f&uuml;r die Tiere.
+                </p>
+                <p class="small">
+                    Unter dem Motto <em>&bdquo;Musik gegen Weltschmerz&ldquo;</em> bringen wir K&uuml;nstler:innen,
+                    Tierschutzorganisationen, Unternehmen und die Community zusammen, um Spenden zu sammeln
+                    und Aufmerksamkeit f&uuml;r den Tierschutz zu schaffen.
+                </p>
+                <hr>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">Kontakte</span>
+                    <strong>{{ total }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">Aktivit&auml;ten</span>
+                    <strong>{{ total_activities }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">Kategorien</span>
+                    <strong>{{ kat_counts|length }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offene Aufgaben -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <strong>&#x1f4cb; N&auml;chste Schritte</strong>
+                {% if open_todos %}
+                <span class="badge bg-primary">{{ open_todos|length }} offen</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if open_todos %}
+                <div class="list-group list-group-flush">
+                    {% for c in open_todos %}
+                    <a href="{{ url_for('contact_detail', id=c.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold small">{{ c.name_organisation }}</div>
+                                <div class="text-muted small">{{ c.naechster_schritt }}</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge kategorie-badge rounded-pill">{{ c.kategorie }}</span>
+                                <div class="small mt-1">{{ c.status|status_emoji }}</div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted p-4">
+                    <p>Keine offenen n&auml;chsten Schritte.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Letzte Aktivitaeten -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <strong>&#x1f552; Letzte Aktivit&auml;ten</strong>
+        {% if total_activities > 0 %}
+        <span class="badge bg-secondary">{{ total_activities }} gesamt</span>
+        {% endif %}
+    </div>
+    {% if recent_activities %}
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:100px">Datum</th>
+                        <th>Kontakt</th>
+                        <th style="width:80px">Typ</th>
+                        <th>Beschreibung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in recent_activities %}
+                    <tr>
+                        <td class="text-muted small">{{ a.datum|datum }}</td>
+                        <td>
+                            <a href="{{ url_for('contact_detail', id=a.contact.id) }}" class="text-decoration-none fw-medium">
+                                {{ a.contact.name_organisation }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if a.typ == 'Mail' %}<span class="badge bg-info text-dark">Mail</span>
+                            {% elif a.typ == 'DM' %}<span class="badge bg-purple">DM</span>
+                            {% elif a.typ == 'Anruf' %}<span class="badge bg-success">Anruf</span>
+                            {% elif a.typ == 'Treffen' %}<span class="badge bg-warning text-dark">Treffen</span>
+                            {% elif a.typ == 'Notiz' %}<span class="badge bg-secondary">Notiz</span>
+                            {% else %}<span class="text-muted">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ a.beschreibung or "&mdash;" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-body text-center text-muted">
+        <p class="mb-0">Noch keine Aktivit&auml;ten erfasst. Beginne mit einem Kontakt und f&uuml;ge die erste Aktivit&auml;t hinzu.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var chartColors = [
+        "#0d6efd", "#198754", "#ffc107", "#dc3545", "#6f42c1", "#20c997",
+        "#fd7e14", "#0dcaf0", "#d63384", "#6c757d"
+    ];
+
+    // Kategorien-Doughnut
+    var katCanvas = document.getElementById("chart-kategorien");
+    if (katCanvas) {
+        var katLabels = [{% for kat, count in kat_counts %}"{{ kat }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+        var katData = [{% for kat, count in kat_counts %}{{ count }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+        new Chart(katCanvas, {
+            type: "doughnut",
+            data: {
+                labels: katLabels,
+                datasets: [{
+                    data: katData,
+                    backgroundColor: chartColors.slice(0, katLabels.length),
+                    borderWidth: 2,
+                    borderColor: "#fff"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "55%",
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: { padding: 15, usePointStyle: true, pointStyle: "circle", font: { size: 12 } }
+                    }
+                }
+            }
+        });
+    }
+
+    // Kontaktwege-Bar
+    var kwCanvas = document.getElementById("chart-kontaktwege");
+    if (kwCanvas) {
+        var kwLabels = [{% for kw, count in kontaktweg_counts %}"{{ kw }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+        var kwData = [{% for kw, count in kontaktweg_counts %}{{ count }}{% if not loop.last %}, {% endif %}{% endfor %}];
+
+        new Chart(kwCanvas, {
+            type: "bar",
+            data: {
+                labels: kwLabels,
+                datasets: [{
+                    label: "Kontakte",
+                    data: kwData,
+                    backgroundColor: chartColors.slice(0, kwLabels.length),
+                    borderRadius: 6,
+                    maxBarThickness: 50
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: "y",
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { display: false } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

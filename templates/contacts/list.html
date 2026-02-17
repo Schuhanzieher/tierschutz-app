@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Kontakte – Tierschutz 2028{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>&#x1f4cb; Kontakte</h2>
+    <a href="{{ url_for('contact_create') }}" class="btn btn-success">&#x2795; Neuer Kontakt</a>
+</div>
+
+{% include "partials/_filter_bar.html" %}
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle" id="contact-table">
+        <thead class="table-light">
+            <tr>
+                <th style="width: 50px">Status</th>
+                <th>Name / Organisation</th>
+                <th>Kategorie</th>
+                <th class="d-none d-md-table-cell">Kontaktperson</th>
+                <th class="d-none d-lg-table-cell">N&auml;chster Schritt</th>
+                <th class="d-none d-md-table-cell">Letzter Kontakt</th>
+                <th style="width: 100px">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contact in contacts %}
+            <tr data-category="{{ contact.kategorie }}" data-status="{{ contact.status }}">
+                <td>
+                    <form method="POST" action="{{ url_for('contact_status_update', id=contact.id) }}" class="d-inline">
+                        <button type="submit" class="status-badge {{ contact.status_css_class() }}" title="Status &auml;ndern: {{ contact.status_label() }}">
+                            {{ contact.status_emoji() }}
+                        </button>
+                    </form>
+                </td>
+                <td>
+                    <a href="{{ url_for('contact_detail', id=contact.id) }}" class="fw-semibold text-decoration-none">
+                        {{ contact.name_organisation }}
+                    </a>
+                    {% if contact.rolle %}
+                    <br><small class="text-muted">{{ contact.rolle }}</small>
+                    {% endif %}
+                </td>
+                <td><span class="badge kategorie-badge">{{ contact.kategorie }}</span></td>
+                <td class="d-none d-md-table-cell">{{ contact.kontaktperson or "—" }}</td>
+                <td class="d-none d-lg-table-cell">
+                    {% if contact.naechster_schritt %}
+                    <small>{{ contact.naechster_schritt }}</small>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="d-none d-md-table-cell">{{ contact.letzter_kontakt|datum }}</td>
+                <td>
+                    <a href="{{ url_for('contact_edit', id=contact.id) }}" class="btn btn-sm btn-outline-primary" title="Bearbeiten">&#x270f;&#xfe0f;</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not contacts %}
+<div class="text-center text-muted mt-4">
+    <p>Keine Kontakte gefunden.</p>
+    <a href="{{ url_for('contact_create') }}" class="btn btn-success">Ersten Kontakt anlegen</a>
+</div>
+{% endif %}
+{% endblock %}

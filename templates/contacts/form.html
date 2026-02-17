@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ "Bearbeiten" if is_edit else "Neuer Kontakt" }} – Tierschutz 2028{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('contact_list') }}">Kontakte</a></li>
+        {% if is_edit %}
+        <li class="breadcrumb-item"><a href="{{ url_for('contact_detail', id=contact.id) }}">{{ contact.name_organisation }}</a></li>
+        <li class="breadcrumb-item active">Bearbeiten</li>
+        {% else %}
+        <li class="breadcrumb-item active">Neuer Kontakt</li>
+        {% endif %}
+    </ol>
+</nav>
+
+<h2 class="mb-4">{{ "&#x270f;&#xfe0f; Kontakt bearbeiten" if is_edit else "&#x2795; Neuer Kontakt" }}</h2>
+
+<form method="POST" class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row g-3">
+            <!-- Kategorie -->
+            <div class="col-md-6">
+                <label class="form-label">Kategorie <span class="text-danger">*</span></label>
+                <select name="kategorie" class="form-select" required>
+                    <option value="">— w&auml;hlen —</option>
+                    {% for kat in kategorien %}
+                    <option value="{{ kat }}" {{ 'selected' if contact and contact.kategorie == kat }}>{{ kat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-6">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    {% for key, val in status_map.items() %}
+                    <option value="{{ key }}" {{ 'selected' if contact and contact.status == key }}>{{ val.emoji }} {{ val.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Name -->
+            <div class="col-md-6">
+                <label class="form-label">Name / Organisation <span class="text-danger">*</span></label>
+                <input type="text" name="name_organisation" class="form-control" required
+                       value="{{ contact.name_organisation if contact else '' }}">
+            </div>
+
+            <!-- Kontaktperson -->
+            <div class="col-md-6">
+                <label class="form-label">Kontaktperson</label>
+                <input type="text" name="kontaktperson" class="form-control"
+                       value="{{ contact.kontaktperson if contact and contact.kontaktperson else '' }}">
+            </div>
+
+            <!-- Rolle -->
+            <div class="col-md-12">
+                <label class="form-label">Rolle / Bezug zum Projekt</label>
+                <input type="text" name="rolle" class="form-control"
+                       value="{{ contact.rolle if contact and contact.rolle else '' }}">
+            </div>
+
+            <!-- Kontaktweg -->
+            <div class="col-md-4">
+                <label class="form-label">Kontaktweg</label>
+                <input type="text" name="kontaktweg" class="form-control" placeholder="z.B. Mail, DM, direkt"
+                       value="{{ contact.kontaktweg if contact and contact.kontaktweg else '' }}">
+            </div>
+
+            <!-- Kontaktdaten -->
+            <div class="col-md-4">
+                <label class="form-label">Kontaktdaten</label>
+                <input type="text" name="kontaktdaten" class="form-control" placeholder="E-Mail, Telefon, Social..."
+                       value="{{ contact.kontaktdaten if contact and contact.kontaktdaten else '' }}">
+            </div>
+
+            <!-- Letzter Kontakt -->
+            <div class="col-md-4">
+                <label class="form-label">Letzter Kontakt</label>
+                <input type="date" name="letzter_kontakt" class="form-control"
+                       value="{{ contact.letzter_kontakt.isoformat() if contact and contact.letzter_kontakt else '' }}">
+            </div>
+
+            <!-- Naechster Schritt -->
+            <div class="col-md-8">
+                <label class="form-label">N&auml;chster Schritt / To-Do</label>
+                <input type="text" name="naechster_schritt" class="form-control"
+                       value="{{ contact.naechster_schritt if contact and contact.naechster_schritt else '' }}">
+            </div>
+
+            <!-- Zustaendig -->
+            <div class="col-md-4">
+                <label class="form-label">Zust&auml;ndig</label>
+                <input type="text" name="zustaendig" class="form-control"
+                       value="{{ contact.zustaendig if contact and contact.zustaendig else 'Daniel' }}">
+            </div>
+
+            <!-- Notizen -->
+            <div class="col-md-12">
+                <label class="form-label">Notizen</label>
+                <textarea name="notizen" class="form-control" rows="3">{{ contact.notizen if contact and contact.notizen else '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-footer bg-white d-flex justify-content-between">
+        <a href="{{ url_for('contact_detail', id=contact.id) if is_edit else url_for('contact_list') }}" class="btn btn-outline-secondary">Abbrechen</a>
+        <button type="submit" class="btn btn-success">{{ "Speichern" if is_edit else "Kontakt anlegen" }}</button>
+    </div>
+</form>
+{% endblock %}
