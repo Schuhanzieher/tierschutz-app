@@ -238,6 +238,43 @@ class ChatMessage(db.Model):
         return f"<ChatMessage {self.id}: {self.absender}>"
 
 
+class ProjektNotiz(db.Model):
+    """Wissensdatenbank: Strategien, Erkenntnisse, Plaene."""
+    __tablename__ = "projekt_notizen"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titel = db.Column(db.String(300), nullable=False)
+    kategorie = db.Column(db.String(100), nullable=False, index=True)
+    inhalt = db.Column(db.Text, nullable=False)
+    prioritaet = db.Column(db.String(20), nullable=False, default="mittel")  # hoch, mittel, niedrig
+    erstellt_von = db.Column(db.String(100), nullable=False, default="Daniel")
+    angepinnt = db.Column(db.Boolean, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ProjektNotiz {self.id}: {self.titel}>"
+
+
+# Kategorien fuer Wissensdatenbank
+NOTIZ_KATEGORIEN = [
+    "Instagram & Social Media",
+    "Partnergewinnung",
+    "Content-Strategie",
+    "Automatisierung & Tools",
+    "Konzert-Planung",
+    "Vegane Bewegung",
+    "Finanzen & Foerderung",
+    "Allgemein",
+]
+
+NOTIZ_PRIORITAETEN = {
+    "hoch": {"emoji": "🔴", "label": "Hoch", "css": "text-danger"},
+    "mittel": {"emoji": "🟡", "label": "Mittel", "css": "text-warning"},
+    "niedrig": {"emoji": "🟢", "label": "Niedrig", "css": "text-success"},
+}
+
+
 # Standard-Rubriken die beim Start erstellt werden
 DEFAULT_RUBRIKEN = [
     {"name": "Allgemein", "emoji": "💬", "beschreibung": "Allgemeiner Team-Chat"},

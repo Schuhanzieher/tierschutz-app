@@ -18,6 +18,7 @@ from models import (
     ActivityLog,
     ChatMessage,
     ChatRubrik,
+    ProjektNotiz,
     DEFAULT_RUBRIKEN,
     STATUS_MAP,
     STATUS_CYCLE,
@@ -25,6 +26,8 @@ from models import (
     AKTIVITAETS_TYPEN,
     ORGA_MITGLIEDER,
     TEXT_VORLAGEN,
+    NOTIZ_KATEGORIEN,
+    NOTIZ_PRIORITAETEN,
 )
 
 
@@ -545,6 +548,153 @@ def register_routes(app):
             selected_vorlage=vorlage_key,
             felder=felder,
         )
+
+    # ── Wissensdatenbank ─────────────────────────────────────
+
+    @app.route("/wissen")
+    def wissen():
+        kat = request.args.get("kategorie", "")
+        prio = request.args.get("prioritaet", "")
+        suche = request.args.get("q", "").strip()
+
+        query = ProjektNotiz.query
+
+        if kat:
+            query = query.filter(ProjektNotiz.kategorie == kat)
+        if prio:
+            query = query.filter(ProjektNotiz.prioritaet == prio)
+        if suche:
+            suchbegriff = f"%{suche}%"
+            query = query.filter(
+                db.or_(
+                    ProjektNotiz.titel.ilike(suchbegriff),
+                    ProjektNotiz.inhalt.ilike(suchbegriff),
+                )
+            )
+
+        # Angepinnte zuerst, dann nach Erstelldatum
+        notizen = (
+            query
+            .order_by(ProjektNotiz.angepinnt.desc(), ProjektNotiz.created_at.desc())
+            .all()
+        )
+
+        # Zaehler pro Kategorie
+        kat_counts = (
+            db.session.query(ProjektNotiz.kategorie, db.func.count(ProjektNotiz.id))
+            .group_by(ProjektNotiz.kategorie)
+            .all()
+        )
+
+        return render_template(
+            "wissen.html",
+            notizen=notizen,
+            notiz_kategorien=NOTIZ_KATEGORIEN,
+            notiz_prioritaeten=NOTIZ_PRIORITAETEN,
+            kat_counts=dict(kat_counts),
+            current_kat=kat,
+            current_prio=prio,
+            current_suche=suche,
+            total=len(notizen),
+        )
+
+    @app.route("/wissen/neu", methods=["GET", "POST"])
+    def wissen_create():
+        if request.method == "POST":
+            notiz = ProjektNotiz(
+                titel=request.form.get("titel", "").strip(),
+                kategorie=request.form.get("kategorie", "Allgemein").strip(),
+                inhalt=request.form.get("inhalt", "").strip(),
+                prioritaet=request.form.get("prioritaet", "mittel"),
+                erstellt_von=request.form.get("erstellt_von", "Daniel").strip(),
+                angepinnt="angepinnt" in request.form,
+            )
+
+            if not notiz.titel or not notiz.inhalt:
+                flash("Titel und Inhalt sind erforderlich.", "error")
+                return render_template(
+                    "wissen_form.html",
+                    notiz=notiz,
+                    notiz_kategorien=NOTIZ_KATEGORIEN,
+                    notiz_prioritaeten=NOTIZ_PRIORITAETEN,
+                    mitglieder=ORGA_MITGLIEDER,
+                    is_edit=False,
+                )
+
+            db.session.add(notiz)
+            db.session.commit()
+            flash(f"'{notiz.titel}' wurde gespeichert.", "success")
+            return redirect(url_for("wissen"))
+
+        return render_template(
+            "wissen_form.html",
+            notiz=None,
+            notiz_kategorien=NOTIZ_KATEGORIEN,
+            notiz_prioritaeten=NOTIZ_PRIORITAETEN,
+            mitglieder=ORGA_MITGLIEDER,
+            is_edit=False,
+        )
+
+    @app.route("/wissen/<int:id>")
+    def wissen_detail(id):
+        notiz = ProjektNotiz.query.get_or_404(id)
+        return render_template(
+            "wissen_detail.html",
+            notiz=notiz,
+            notiz_prioritaeten=NOTIZ_PRIORITAETEN,
+        )
+
+    @app.route("/wissen/<int:id>/bearbeiten", methods=["GET", "POST"])
+    def wissen_edit(id):
+        notiz = ProjektNotiz.query.get_or_404(id)
+
+        if request.method == "POST":
+            notiz.titel = request.form.get("titel", "").strip()
+            notiz.kategorie = request.form.get("kategorie", "Allgemein").strip()
+            notiz.inhalt = request.form.get("inhalt", "").strip()
+            notiz.prioritaet = request.form.get("prioritaet", "mittel")
+            notiz.erstellt_von = request.form.get("erstellt_von", "Daniel").strip()
+            notiz.angepinnt = "angepinnt" in request.form
+
+            if not notiz.titel or not notiz.inhalt:
+                flash("Titel und Inhalt sind erforderlich.", "error")
+                return render_template(
+                    "wissen_form.html",
+                    notiz=notiz,
+                    notiz_kategorien=NOTIZ_KATEGORIEN,
+                    notiz_prioritaeten=NOTIZ_PRIORITAETEN,
+                    mitglieder=ORGA_MITGLIEDER,
+                    is_edit=True,
+                )
+
+            db.session.commit()
+            flash(f"'{notiz.titel}' wurde aktualisiert.", "success")
+            return redirect(url_for("wissen_detail", id=notiz.id))
+
+        return render_template(
+            "wissen_form.html",
+            notiz=notiz,
+            notiz_kategorien=NOTIZ_KATEGORIEN,
+            notiz_prioritaeten=NOTIZ_PRIORITAETEN,
+            mitglieder=ORGA_MITGLIEDER,
+            is_edit=True,
+        )
+
+    @app.route("/wissen/<int:id>/pin", methods=["POST"])
+    def wissen_pin(id):
+        notiz = ProjektNotiz.query.get_or_404(id)
+        notiz.angepinnt = not notiz.angepinnt
+        db.session.commit()
+        return redirect(request.referrer or url_for("wissen"))
+
+    @app.route("/wissen/<int:id>/loeschen", methods=["POST"])
+    def wissen_delete(id):
+        notiz = ProjektNotiz.query.get_or_404(id)
+        titel = notiz.titel
+        db.session.delete(notiz)
+        db.session.commit()
+        flash(f"'{titel}' wurde geloescht.", "success")
+        return redirect(url_for("wissen"))
 
     # ── Hilfsfunktionen ────────────────────────────────────────
 

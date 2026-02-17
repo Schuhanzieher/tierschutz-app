@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ notiz.titel }} – Wissensdatenbank{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a href="{{ url_for('wissen') }}" class="text-decoration-none">Wissensdatenbank</a></li>
+        <li class="breadcrumb-item active">{{ notiz.titel[:50] }}{% if notiz.titel|length > 50 %}...{% endif %}</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <span class="badge wissen-kat-badge">{{ notiz.kategorie }}</span>
+                    <span class="{{ notiz_prioritaeten[notiz.prioritaet].css }} small">
+                        {{ notiz_prioritaeten[notiz.prioritaet].emoji }} {{ notiz_prioritaeten[notiz.prioritaet].label }}
+                    </span>
+                    {% if notiz.angepinnt %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-pin-fill"></i> Angepinnt</span>
+                    {% endif %}
+                </div>
+                <h3 class="mb-1">{{ notiz.titel }}</h3>
+                <p class="text-muted small mb-0">
+                    Von <strong>{{ notiz.erstellt_von }}</strong> &middot;
+                    Erstellt am {{ notiz.created_at.strftime('%d.%m.%Y um %H:%M') }}
+                    {% if notiz.updated_at and notiz.updated_at != notiz.created_at %}
+                    &middot; Aktualisiert am {{ notiz.updated_at.strftime('%d.%m.%Y um %H:%M') }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <form method="POST" action="{{ url_for('wissen_pin', id=notiz.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            title="{% if notiz.angepinnt %}Lösen{% else %}Anpinnen{% endif %}">
+                        <i class="bi bi-pin{% if notiz.angepinnt %}-fill{% endif %}"></i>
+                    </button>
+                </form>
+                <a href="{{ url_for('wissen_edit', id=notiz.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Bearbeiten
+                </a>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- Inhalt -->
+        <div class="wissen-inhalt">
+            {{ notiz.inhalt|replace('\n', '<br>')|safe }}
+        </div>
+
+        <hr>
+
+        <!-- Aktionen -->
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('wissen') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Zur&uuml;ck
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('wissen_edit', id=notiz.id) }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-pencil"></i> Bearbeiten
+                </a>
+                <form method="POST" action="{{ url_for('wissen_delete', id=notiz.id) }}"
+                      onsubmit="return confirm('Wirklich loeschen?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
