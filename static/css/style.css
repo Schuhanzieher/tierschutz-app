@@ -864,6 +864,118 @@ dd {
     overflow-y: auto;
 }
 
+/* ── Status-Board (Kanban) ────────────────────────── */
+
+.status-board {
+    min-height: 400px;
+}
+
+.status-column {
+    background: #f8f9fa;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.status-column-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-bottom: 2px solid transparent;
+}
+
+.status-column-green .status-column-header {
+    background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+    border-bottom-color: #22c55e;
+}
+
+.status-column-yellow .status-column-header {
+    background: linear-gradient(135deg, #fef9c3 0%, #fefce8 100%);
+    border-bottom-color: #eab308;
+}
+
+.status-column-red .status-column-header {
+    background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+    border-bottom-color: #ef4444;
+}
+
+.status-column-icon {
+    font-size: 1.1rem;
+}
+
+.status-column-title {
+    flex: 1;
+}
+
+.status-column-body {
+    padding: 0.75rem;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.status-card {
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.status-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.status-card-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    text-decoration: none;
+    color: #1f2937;
+    line-height: 1.3;
+}
+
+.status-card-name:hover {
+    color: #0d6efd;
+}
+
+.status-card-person {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.status-card-meta {
+    font-size: 0.7rem;
+    color: #9ca3af;
+}
+
+.status-card-step {
+    font-size: 0.75rem;
+    color: #4b5563;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.status-card-owner {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+.status-column-empty {
+    text-align: center;
+    color: #9ca3af;
+    padding: 2rem 1rem;
+    font-size: 0.85rem;
+}
+
 /* ── Responsive ───────────────────────────────────── */
 
 @media (max-width: 768px) {

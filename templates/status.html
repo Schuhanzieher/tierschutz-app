@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Status-Board – Tierschutz 2028{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>&#x1f6a6; Status-Board</h2>
+    <a href="{{ url_for('contact_create') }}" class="btn btn-success btn-sm">&#x2795; Neuer Kontakt</a>
+</div>
+
+<!-- Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 small text-muted">Filter:</label>
+            </div>
+            <div class="col-sm">
+                <select class="form-select form-select-sm" id="filter-kat-status" onchange="applyStatusFilter()">
+                    <option value="">Alle Kategorien</option>
+                    {% for k in kategorien %}
+                    <option value="{{ k }}" {% if current_kat == k %}selected{% endif %}>{{ k }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm">
+                <select class="form-select form-select-sm" id="filter-zustaendig-status" onchange="applyStatusFilter()">
+                    <option value="">Alle Zust&auml;ndigen</option>
+                    {% for m in mitglieder %}
+                    <option value="{{ m }}" {% if current_zustaendig == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <span class="badge bg-secondary" id="status-total">{{ total }} Kontakte</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kanban Board -->
+<div class="row g-3 status-board">
+    <!-- Aktiv / Gr&uuml;n -->
+    <div class="col-lg-4">
+        <div class="status-column status-column-green">
+            <div class="status-column-header">
+                <span class="status-column-icon">&#x1f7e2;</span>
+                <span class="status-column-title">Aktiv / im Austausch</span>
+                <span class="badge bg-success rounded-pill">{{ gruen|length }}</span>
+            </div>
+            <div class="status-column-body">
+                {% for c in gruen %}
+                <div class="status-card">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <a href="{{ url_for('contact_detail', id=c.id) }}" class="status-card-name">{{ c.name_organisation }}</a>
+                        <form method="POST" action="{{ url_for('contact_status_update', id=c.id) }}" class="d-inline">
+                            <button type="submit" class="status-badge status-green" title="Status &auml;ndern">&#x1f7e2;</button>
+                        </form>
+                    </div>
+                    {% if c.kontaktperson %}
+                    <div class="status-card-person"><i class="bi bi-person-fill"></i> {{ c.kontaktperson }}</div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="badge kategorie-badge">{{ c.kategorie }}</span>
+                        <span class="status-card-meta">
+                            {% if c.letzter_kontakt %}{{ c.letzter_kontakt|datum }}{% else %}kein Datum{% endif %}
+                        </span>
+                    </div>
+                    {% if c.naechster_schritt %}
+                    <div class="status-card-step"><i class="bi bi-arrow-right-short"></i> {{ c.naechster_schritt }}</div>
+                    {% endif %}
+                    {% if c.zustaendig %}
+                    <div class="status-card-owner"><i class="bi bi-person-badge"></i> {{ c.zustaendig }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if not gruen %}
+                <div class="status-column-empty">Keine aktiven Kontakte</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Offen / Gelb -->
+    <div class="col-lg-4">
+        <div class="status-column status-column-yellow">
+            <div class="status-column-header">
+                <span class="status-column-icon">&#x1f7e1;</span>
+                <span class="status-column-title">Offen / warm</span>
+                <span class="badge bg-warning text-dark rounded-pill">{{ gelb|length }}</span>
+            </div>
+            <div class="status-column-body">
+                {% for c in gelb %}
+                <div class="status-card">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <a href="{{ url_for('contact_detail', id=c.id) }}" class="status-card-name">{{ c.name_organisation }}</a>
+                        <form method="POST" action="{{ url_for('contact_status_update', id=c.id) }}" class="d-inline">
+                            <button type="submit" class="status-badge status-yellow" title="Status &auml;ndern">&#x1f7e1;</button>
+                        </form>
+                    </div>
+                    {% if c.kontaktperson %}
+                    <div class="status-card-person"><i class="bi bi-person-fill"></i> {{ c.kontaktperson }}</div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="badge kategorie-badge">{{ c.kategorie }}</span>
+                        <span class="status-card-meta">
+                            {% if c.letzter_kontakt %}{{ c.letzter_kontakt|datum }}{% else %}kein Datum{% endif %}
+                        </span>
+                    </div>
+                    {% if c.naechster_schritt %}
+                    <div class="status-card-step"><i class="bi bi-arrow-right-short"></i> {{ c.naechster_schritt }}</div>
+                    {% endif %}
+                    {% if c.zustaendig %}
+                    <div class="status-card-owner"><i class="bi bi-person-badge"></i> {{ c.zustaendig }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if not gelb %}
+                <div class="status-column-empty">Keine offenen Kontakte</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Nicht m&ouml;glich / Rot -->
+    <div class="col-lg-4">
+        <div class="status-column status-column-red">
+            <div class="status-column-header">
+                <span class="status-column-icon">&#x1f534;</span>
+                <span class="status-column-title">Aktuell nicht m&ouml;glich</span>
+                <span class="badge bg-danger rounded-pill">{{ rot|length }}</span>
+            </div>
+            <div class="status-column-body">
+                {% for c in rot %}
+                <div class="status-card">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <a href="{{ url_for('contact_detail', id=c.id) }}" class="status-card-name">{{ c.name_organisation }}</a>
+                        <form method="POST" action="{{ url_for('contact_status_update', id=c.id) }}" class="d-inline">
+                            <button type="submit" class="status-badge status-red" title="Status &auml;ndern">&#x1f534;</button>
+                        </form>
+                    </div>
+                    {% if c.kontaktperson %}
+                    <div class="status-card-person"><i class="bi bi-person-fill"></i> {{ c.kontaktperson }}</div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="badge kategorie-badge">{{ c.kategorie }}</span>
+                        <span class="status-card-meta">
+                            {% if c.letzter_kontakt %}{{ c.letzter_kontakt|datum }}{% else %}kein Datum{% endif %}
+                        </span>
+                    </div>
+                    {% if c.naechster_schritt %}
+                    <div class="status-card-step"><i class="bi bi-arrow-right-short"></i> {{ c.naechster_schritt }}</div>
+                    {% endif %}
+                    {% if c.zustaendig %}
+                    <div class="status-card-owner"><i class="bi bi-person-badge"></i> {{ c.zustaendig }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if not rot %}
+                <div class="status-column-empty">Keine abgelehnten Kontakte</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Zust&auml;ndigen-&Uuml;bersicht -->
+{% if zustaendig_counts %}
+<div class="card border-0 shadow-sm mt-4 mb-4">
+    <div class="card-header bg-white border-0"><strong>&#x1f465; Kontakte pro Zust&auml;ndigem</strong></div>
+    <div class="card-body">
+        <div class="row g-2">
+            {% for name, count in zustaendig_counts %}
+            <div class="col-auto">
+                <a href="{{ url_for('status_board', zustaendig=name, kategorie=current_kat) }}"
+                   class="btn btn-sm {% if current_zustaendig == name %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                    {{ name }} <span class="badge bg-light text-dark ms-1">{{ count }}</span>
+                </a>
+            </div>
+            {% endfor %}
+            {% if current_zustaendig %}
+            <div class="col-auto">
+                <a href="{{ url_for('status_board', kategorie=current_kat) }}" class="btn btn-sm btn-outline-danger">Alle zeigen</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function applyStatusFilter() {
+    var kat = document.getElementById("filter-kat-status");
+    var zustaendig = document.getElementById("filter-zustaendig-status");
+    var params = new URLSearchParams();
+    if (kat && kat.value) params.set("kategorie", kat.value);
+    if (zustaendig && zustaendig.value) params.set("zustaendig", zustaendig.value);
+    var url = window.location.pathname;
+    var qs = params.toString();
+    if (qs) url += "?" + qs;
+    window.location.href = url;
+}
+</script>
+{% endblock %}

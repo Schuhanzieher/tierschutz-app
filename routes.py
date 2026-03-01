@@ -349,6 +349,49 @@ def register_routes(app):
         flash(f"{name} wurde gel\u00f6scht.", "success")
         return redirect(url_for("contact_list"))
 
+    # ── Status-Board ────────────────────────────────────────
+
+    @app.route("/status")
+    def status_board():
+        kat = request.args.get("kategorie", "")
+        zustaendig = request.args.get("zustaendig", "")
+
+        query = Contact.query
+
+        if kat:
+            query = query.filter(Contact.kategorie == kat)
+        if zustaendig:
+            query = query.filter(Contact.zustaendig == zustaendig)
+
+        contacts = query.order_by(Contact.name_organisation).all()
+
+        # Kontakte nach Status gruppieren
+        gruen = [c for c in contacts if c.status == "gruen"]
+        gelb = [c for c in contacts if c.status == "gelb"]
+        rot = [c for c in contacts if c.status == "rot"]
+
+        # Zustaendige zaehlen
+        zustaendig_counts = (
+            db.session.query(Contact.zustaendig, db.func.count(Contact.id))
+            .filter(Contact.zustaendig.isnot(None))
+            .group_by(Contact.zustaendig)
+            .all()
+        )
+
+        return render_template(
+            "status.html",
+            gruen=gruen,
+            gelb=gelb,
+            rot=rot,
+            total=len(contacts),
+            kategorien=KATEGORIEN,
+            status_map=STATUS_MAP,
+            current_kat=kat,
+            current_zustaendig=zustaendig,
+            zustaendig_counts=zustaendig_counts,
+            mitglieder=ORGA_MITGLIEDER,
+        )
+
     # ── CSV-Export ─────────────────────────────────────────────
 
     @app.route("/export")
